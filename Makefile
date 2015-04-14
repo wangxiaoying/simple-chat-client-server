@@ -3,3 +3,5 @@ chat: chat.o
 	cc chat.o -ochat
 chat.o: chat.c
 	cc -c chat.c
+clean:
+	rm -rf *.o chat
