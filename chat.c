@@ -31,7 +31,6 @@ void exitClient(int fd, fd_set *readfds, char fd_array[], int *num_clients){
     (*num_clients)--;
 }
 
-
 int main(int argc, char *argv[]) {
    int i=0;
    
@@ -75,12 +74,17 @@ int main(int argc, char *argv[]) {
      
      /* Create a socket for the client */
      sockfd = socket(AF_INET, SOCK_STREAM, 0);
+     // printf("Hello, you are user #%d\n", sockfd);
 
      /* Name the socket, as agreed with the server */
      hostinfo = gethostbyname(hostname);  /* look for host's name */
      address.sin_addr = *(struct in_addr *)*hostinfo -> h_addr_list;
      address.sin_family = AF_INET;
      address.sin_port = htons(port);
+
+     // printf("h_name: %s\n", hostinfo->h_name);
+     // printf("h_addr: %s\n", hostinfo->h_addr);
+
 
      /* Connect the socket to the server's socket */
      if(connect(sockfd, (struct sockaddr *)&address, sizeof(address)) < 0){
@@ -102,12 +106,13 @@ int main(int argc, char *argv[]) {
        for(fd=0;fd<FD_SETSIZE;fd++){
           if(FD_ISSET(fd,&testfds)){
              if(fd==sockfd){   /*Accept data from open socket */
-                //printf("client - read\n");
+                // printf("client - read\n");
                 
                 //read data from open socket
                 result = read(sockfd, msg, MSG_SIZE);
                 msg[result] = '\0';  /* Terminate string with null */
                 printf("%s", msg +1);
+                fflush(stdout);
                 
                 if (msg[0] == 'X') {                   
                     close(sockfd);
@@ -130,7 +135,7 @@ int main(int argc, char *argv[]) {
                     msg[result]='\0';
                     strcat(kb_msg,msg+1);*/
 
-                    sprintf(msg, "M%s", kb_msg);
+                    sprintf(msg, "M: %s", kb_msg);
                     write(sockfd, msg, strlen(msg));
                 }                                                 
              }          
@@ -190,12 +195,14 @@ int main(int argc, char *argv[]) {
                     FD_SET(client_sockfd, &readfds);
                     fd_array[num_clients]=client_sockfd;
                     /*Client ID*/
-                    printf("Client %d joined\n",num_clients++);
+                    printf("%d Client #%2d joined\n",++num_clients, client_sockfd);
                     fflush(stdout);
                     
-                    sprintf(msg,"M%2d",client_sockfd);
+                    sprintf(msg,"MYou are Client #%2d\n",client_sockfd);
                     /*write 2 byte clientID */
-                    send(client_sockfd,msg,strlen(msg),0);
+                    
+                    // write(client_sockfd, msg, strlen(msg));
+                    send(client_sockfd,msg,strlen(msg),0); //with a 0 flag, send is equivalent to write
                  }
                  else {
                     sprintf(msg, "XSorry, too many clients.  Try again later.\n");
@@ -217,7 +224,7 @@ int main(int argc, char *argv[]) {
                  }
                  else {
                     //printf("server - send\n");
-                    sprintf(msg, "M%s", kb_msg);
+                    sprintf(msg, "MServer: %s", kb_msg);
                     for (i = 0; i < num_clients ; i++)
                        write(fd_array[i], msg, strlen(msg));
                  }
@@ -230,7 +237,7 @@ int main(int argc, char *argv[]) {
                  if(result==-1) perror("read()");
                  else if(result>0){
                     /*read 2 bytes client id*/
-                    sprintf(kb_msg,"M%2d",fd);
+                    sprintf(kb_msg,"MClient #%2d: ",fd);
                     msg[result]='\0';
                     
                     /*concatinate the client id with the client's message*/
@@ -239,7 +246,7 @@ int main(int argc, char *argv[]) {
                     /*print to other clients*/
                     for(i=0;i<num_clients;i++){
                        if (fd_array[i] != fd)  /*dont write msg to same client*/
-                          write(fd_array[i],kb_msg,strlen(kb_msg));
+                        write(fd_array[i],kb_msg,strlen(kb_msg));
                     }
                     /*print to server*/
                     printf("%s",kb_msg+1);
